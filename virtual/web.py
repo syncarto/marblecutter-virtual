@@ -10,7 +10,10 @@ from marblecutter import NoCatalogAvailable, tiling
 from marblecutter.formats.optimal import Optimal
 from marblecutter.transformations import Image
 from marblecutter.web import bp, url_for
-from mercantile import Tile
+from marblecutter.utils import Source
+import mercantile
+import requests
+from werkzeug.datastructures import ImmutableMultiDict
 
 try:
     from urllib.parse import urlparse, urlencode
@@ -106,11 +109,73 @@ def preview():
     )
 
 
+@app.route("/stac/<int:z>/<int:x>/<int:y>")
+@app.route("/stac/<int:z>/<int:x>/<int:y>@<int:scale>x")
+def render_png_from_stac_catalog(z, x, y, scale=1):
+
+    if request.args.get("url", "") == "":
+        raise NoCatalogAvailable()
+
+    # example:
+    # https://4reb3lh9m6.execute-api.us-west-2.amazonaws.com/stage/stac/search
+    # test tile:
+    # http://localhost:8000/stac/16/16476/24074@2x?url=https%3A%2F%2F4reb3lh9m6.execute-api.us-west-2.amazonaws.com%2Fstage%2Fstac%2Fsearch
+    # compare result to single geotiff version:
+    # http://localhost:8000/tiles/16/16476/24074@2x?url=https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsyncarto-data-test%2Foutput%2F060801NE_COG.TIF
+    stac_catalog_url = request.args["url"]
+
+    tile = mercantile.Tile(x, y, z)
+    bounds = mercantile.bounds(x, y, z)
+
+    # per https://github.com/radiantearth/stac-spec/blob/master/api-spec/filters.md
+    bbox = [bounds.west, bounds.south, bounds.east, bounds.north]
+
+    params = {
+                'bbox': str(bbox).replace(' ', ''),
+                'limit': 25,
+            }
+    response = requests.get(stac_catalog_url, params=params)
+    assert response.status_code == 200
+    features = response.json()['features']
+
+    image_urls = []
+    for feature in features:
+        # TODO assume less about stac response here
+        image_urls.append(feature['assets']['visual']['href'])
+
+    # make a catalog from first image for getting name and resolution
+    # Need to emulate same type of arg as flask request.args (specifically be immutable)
+    test_catalog = make_catalog(ImmutableMultiDict([('url', image_urls[0])]))
+
+    sources = []
+    for i, image_url in enumerate(image_urls):
+        # requires at least url, name, resolution
+        source = Source(
+            url=image_url,
+            name=test_catalog._name + str(i),
+            resolution=test_catalog._resolution,
+        )
+        sources.append(source)
+
+    headers, data = tiling.render_tile_from_sources(
+        tile,
+        sources,
+        format=IMAGE_FORMAT,
+        transformation=IMAGE_TRANSFORMATION,
+        scale=scale,
+    )
+
+    # ???
+    # headers.update(catalog.headers)
+
+    return data, 200, headers
+
+
 @app.route("/tiles/<int:z>/<int:x>/<int:y>")
 @app.route("/tiles/<int:z>/<int:x>/<int:y>@<int:scale>x")
 def render_png(z, x, y, scale=1):
     catalog = make_catalog(request.args)
-    tile = Tile(x, y, z)
+    tile = mercantile.Tile(x, y, z)
 
     headers, data = tiling.render_tile(
         tile,
