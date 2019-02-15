@@ -3,9 +3,10 @@ services:
   marblecutter:
     build: .
     environment:
-      - PYTHONPATH=.
+      - PYTHONPATH=.:/marblecutter
     volumes:
       - .:/opt/marblecutter/
+      - /Users/michaelhiley/repos/marblecutter:/marblecutter
     ports:
       - "8000:8000"
     entrypoint: python
