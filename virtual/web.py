@@ -10,6 +10,7 @@ from marblecutter import NoCatalogAvailable, tiling
 from marblecutter.formats.optimal import Optimal
 from marblecutter.transformations import Image
 from marblecutter.web import bp, url_for
+from marblecutter.utils import Source
 import mercantile
 import requests
 from werkzeug.datastructures import ImmutableMultiDict
@@ -154,13 +155,18 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
 
     LOG.info('features left after bbox overlap filter: {}'.format(len(image_urls)))
 
+    # make a catalog from first image for getting name and resolution
+    # Need to emulate same type of arg as flask request.args (specifically be immutable)
+    # (Making catalog for every uri is SLOW)
+    test_catalog = make_catalog(ImmutableMultiDict([('url', image_urls[0])]))
+
     sources = []
     for i, image_url in enumerate(image_urls):
-        catalog = make_catalog(ImmutableMultiDict([('url', image_url)]))
-        # args don't appear to actually get used here
-        # not sure why this is a generator
-        source_gen = catalog.get_sources(None, None)
-        source = next(source_gen)
+        source = Source(
+            url=image_url,
+            name=test_catalog._name + str(i),
+            resolution=test_catalog._resolution,
+        )
         sources.append(source)
 
     headers, data = tiling.render_tile_from_sources(
