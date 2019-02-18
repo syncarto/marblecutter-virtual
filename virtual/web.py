@@ -134,7 +134,7 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
 
     params = {
                 'bbox': str(tile_bbox).replace(' ', ''),
-                'limit': 25,
+                'limit': 200,
             }
     response = requests.get(stac_catalog_url, params=params)
     assert response.status_code == 200
