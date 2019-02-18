@@ -135,7 +135,7 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
 
     params = {
                 'bbox': str(tile_bbox).replace(' ', ''),
-                'limit': 200,
+                'limit': 500,
             }
     response = requests.get(stac_catalog_url, params=params)
     assert response.status_code == 200
@@ -155,19 +155,20 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
 
     LOG.info('features left after bbox overlap filter: {}'.format(len(image_urls)))
 
-    # make a catalog from first image for getting name and resolution
-    # Need to emulate same type of arg as flask request.args (specifically be immutable)
-    # (Making catalog for every uri is SLOW)
-    test_catalog = make_catalog(ImmutableMultiDict([('url', image_urls[0])]))
-
     sources = []
-    for i, image_url in enumerate(image_urls):
-        source = Source(
-            url=image_url,
-            name=test_catalog._name + str(i),
-            resolution=test_catalog._resolution,
-        )
-        sources.append(source)
+    if len(image_urls) > 0:
+        # make a catalog from first image for getting name and resolution
+        # Need to emulate same type of arg as flask request.args (specifically be immutable)
+        # (Making catalog for every uri is SLOW)
+        test_catalog = make_catalog(ImmutableMultiDict([('url', image_urls[0])]))
+
+        for i, image_url in enumerate(image_urls):
+            source = Source(
+                url=image_url,
+                name=test_catalog._name + str(i),
+                resolution=test_catalog._resolution,
+            )
+            sources.append(source)
 
     headers, data = tiling.render_tile_from_sources(
         tile,
