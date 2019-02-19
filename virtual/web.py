@@ -87,6 +87,19 @@ def bounds():
 
     return jsonify({"url": catalog.uri, "bounds": catalog.bounds})
 
+@app.route("/blah")
+def blah():
+    return (
+        render_template(
+            "blah.html",
+            tilejson_url=Markup(
+                url_for("meta", _external=True, _scheme="", **request.args)
+            ),
+        ),
+        200,
+        {"Content-Type": "text/html"},
+    )
+
 
 @app.route("/preview")
 def preview():
