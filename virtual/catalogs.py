@@ -19,6 +19,7 @@ class VirtualCatalog(Catalog):
     _resample = None
 
     def __init__(self, uri, rgb=None, nodata=None, linear_stretch=None, resample=None):
+        LOG.info('initializing catalog: {}'.format(uri))
         self._uri = uri
 
         if rgb:
