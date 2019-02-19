@@ -3,8 +3,8 @@ flask-cors
 # marblecutter[web] ~= 0.3.1
 # https://github.com/mojodna/marblecutter/archive/80ff8a1.tar.gz#egg=marblecutter[web]
 # mjh: need marblecutter branch with increased # of sources per tile limit
-git+https://github.com/mhiley/marblecutter.git@increase-source-limit
-rasterio[s3] ~= 1.0
+# git+https://github.com/mhiley/marblecutter.git@increase-source-limit
+# rasterio[s3] ~= 1.0
 numpy
 serverless-wsgi
 future
