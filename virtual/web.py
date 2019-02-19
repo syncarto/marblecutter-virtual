@@ -167,6 +167,7 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
                 url=image_url,
                 name=test_catalog._name + str(i),
                 resolution=test_catalog._resolution,
+                recipes={"imagery": True},
             )
             sources.append(source)
 
