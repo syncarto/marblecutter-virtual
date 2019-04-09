@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import logging
+import json
 
 from cachetools.func import lru_cache
 from flask import Flask, Markup, jsonify, redirect, render_template, request
@@ -137,7 +138,21 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
                 'bbox': str(tile_bbox).replace(' ', ''),
                 'limit': 500,
             }
+
+    # optional query parameter "collection" allows you to filter
+    # results by "collection" property on items
+    # TODO allow more arbitrary property filter here?
+    collection = request.args.get('collection', None)
+    if collection:
+        collection_filter = {
+                    "collection": {
+                        "eq": collection
+                    }
+                }
+        params['query'] = json.dumps(collection_filter)
+
     response = requests.get(stac_catalog_url, params=params)
+    LOG.info('stac url: {}'.format(response.url))
     assert response.status_code == 200
     features = response.json()['features']
     LOG.info('{} number of features: {}'.format(response.url, len(features)))
