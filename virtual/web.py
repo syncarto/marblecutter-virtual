@@ -151,6 +151,17 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
                 }
         params['query'] = json.dumps(collection_filter)
 
+    time = request.args.get('time', None)
+    if time:
+        params['time'] = time
+
+    footprint_props = request.args.get('footprintProperties', None)
+    if footprint_props:
+        latest_by_footprint_filter = {
+                  'footprintProperties': footprint_props.split(',')
+                }
+        params['latestFilter'] = json.dumps(latest_by_footprint_filter)
+
     response = requests.get(stac_catalog_url, params=params)
     LOG.info('stac url: {}'.format(response.url))
     assert response.status_code == 200
@@ -165,8 +176,13 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
             # precision not good enough for our <1km tiles
             continue
 
-        # TODO assume less about stac response here
-        image_urls.append(feature['assets']['visual']['href'])
+        # TODO more general way to determine which asset to use?
+        try:
+            # Works for NAIP and custom imagery
+            image_urls.append(feature['assets']['visual']['href'])
+        except KeyError:
+            # works for landsat
+            image_urls.append(feature['assets']['B2']['href'])
 
     LOG.info('features left after bbox overlap filter: {}'.format(len(image_urls)))
 
