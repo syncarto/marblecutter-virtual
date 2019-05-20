@@ -139,23 +139,32 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
                 'limit': 500,
             }
 
-    # optional query parameter "collection" allows you to filter
-    # results by "collection" property on items
-    # TODO allow more arbitrary property filter here?
+    # Handle a couple special query parameters to query by property
+    # Could make this more general but it would require e.g. passing json properties list
+    query_filter = dict()
     collection = request.args.get('collection', None)
     if collection:
-        collection_filter = {
-                    "collection": {
+        query_filter['collection'] = {
                         "eq": collection
                     }
-                }
-        params['query'] = json.dumps(collection_filter)
+    constellation = request.args.get('constellation', None)
+    if constellation is None:
+        constellation = request.args.get('eo:constellation', None)
+    if constellation:
+        query_filter['eo:constellation'] = {
+                        "eq": constellation
+                    }
+
+    if len(query_filter.keys()) > 0:
+        params['query'] = json.dumps(query_filter)
 
     time = request.args.get('time', None)
     if time:
         params['time'] = time
 
     footprint_props = request.args.get('footprintProperties', None)
+    # test url:
+    # http://localhost:8000/stac/16/16642/23807?url=https%3A%2F%2F4reb3lh9m6.execute-api.us-west-2.amazonaws.com%2Fstage%2Fstac%2Fsearch&constellation=NAIP&footprintProperties=naip%3Aquarter_quad_id&time=2010-01-01T00%3A00%3A00Z%2F2018-01-01T00%3A00%3A00Z
     if footprint_props:
         latest_by_footprint_filter = {
                   'footprintProperties': footprint_props.split(',')
