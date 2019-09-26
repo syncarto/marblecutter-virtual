@@ -171,7 +171,12 @@ def render_png_from_stac_catalog(z, x, y, scale=1):
                 }
         params['latestFilter'] = json.dumps(latest_by_footprint_filter)
 
-    response = requests.get(stac_catalog_url, params=params)
+    # pass through auth header from client to sat-api so it can do org auth
+    headers = {
+                'Authorization': request.headers.get('Authorization', '')
+            }
+
+    response = requests.get(stac_catalog_url, params=params, headers=headers)
     LOG.info('stac url: {}'.format(response.url))
     assert response.status_code == 200
     features = response.json()['features']
